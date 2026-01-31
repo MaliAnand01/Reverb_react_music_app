@@ -13,6 +13,8 @@ const MobilePlayer = () => {
         currentTime, 
         duration, 
         seek,
+        volume,
+        setVolume,
         isMobilePlayerOpen,
         setIsMobilePlayerOpen,
         likedSongs,
@@ -23,6 +25,13 @@ const MobilePlayer = () => {
     const [dragValue, setDragValue] = useState(null);
 
     const progressBarRef = useRef(null);
+
+    // Handle Swipe to Close
+    const handleDragEnd = (_, info) => {
+        if (info.offset.y > 100 || info.velocity.y > 500) {
+            setIsMobilePlayerOpen(false);
+        }
+    };
 
     // Derived state for progress
     const currentProgress = dragValue !== null ? dragValue : ((currentTime / duration) * 100 || 0);
@@ -79,11 +88,15 @@ const MobilePlayer = () => {
         <AnimatePresence>
             {isMobilePlayerOpen && (
                 <motion.div
+                    drag="y"
+                    dragConstraints={{ top: 0, bottom: 0 }}
+                    dragElastic={{ top: 0.1, bottom: 0.8 }}
+                    onDragEnd={handleDragEnd}
                     initial={{ y: "100%" }}
                     animate={{ y: 0 }}
                     exit={{ y: "100%" }}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-3xl flex flex-col md:hidden"
+                    className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-3xl flex flex-col md:hidden touch-none"
                 >
                     {/* Background Ambience */}
                     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -91,8 +104,11 @@ const MobilePlayer = () => {
                          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-black/90" />
                     </div>
 
+                    {/* Drag Handle Indicator */}
+                    <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-4 absolute top-0 left-1/2 -translate-x-1/2 z-20" />
+
                     {/* Header */}
-                    <div className="flex items-center justify-between p-6 relative z-10">
+                    <div className="flex items-center justify-between p-6 relative z-10 mt-2">
                         <button 
                             onClick={() => setIsMobilePlayerOpen(false)}
                             className="p-2 text-white/80 hover:text-white"
@@ -112,12 +128,18 @@ const MobilePlayer = () => {
                     <div className="flex-1 flex flex-col px-8 pb-12 relative z-10 justify-evenly">
                         
                         {/* Artwork */}
-                        <div className="w-full aspect-square rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mx-auto max-w-[350px]">
-                            <img src={currentSong.image} alt={currentSong.name} className="w-full h-full object-cover" />
-                        </div>
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="w-full aspect-square rounded-[2rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/50 border border-white/10 mx-auto max-w-[320px] md:max-w-[350px] relative group"
+                        >
+                            <img src={currentSong.image} alt={currentSong.name} className="w-full h-full object-cover transition-transform duration-[10s] ease-linear group-hover:scale-110" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
+                        </motion.div>
 
                         {/* Info & Actions */}
-                        <div className="flex items-center justify-between mt-8">
+                        <div className="flex items-center justify-between">
                             <div className="flex-1">
                                 <h1 className="text-2xl font-bold text-white truncate mb-1">{currentSong.name}</h1>
                                 <p className="text-lg text-zinc-400 truncate">{currentSong.artist}</p>
@@ -131,7 +153,7 @@ const MobilePlayer = () => {
                         </div>
 
                         {/* Progress */}
-                        <div className="space-y-2 mt-8">
+                        <div className="space-y-2">
                             <div 
                                 className="h-1.5 bg-white/10 rounded-full relative group cursor-pointer"
                                 ref={progressBarRef}
@@ -147,29 +169,29 @@ const MobilePlayer = () => {
                                     className="absolute left-0 top-0 h-full bg-white rounded-full transition-all duration-100 ease-out"
                                     style={{ width: `${currentProgress}%` }}
                                 >
-                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg" />
                                 </div>
                             </div>
-                            <div className="flex justify-between text-xs font-medium text-zinc-500">
+                            <div className="flex justify-between text-xs font-medium text-zinc-500 font-mono">
                                 <span>{formatTime(currentTime)}</span>
                                 <span>{formatTime(duration)}</span>
                             </div>
                         </div>
 
                         {/* Controls */}
-                        <div className="flex items-center justify-between mt-6">
+                        <div className="flex items-center justify-between">
                             <button className="text-zinc-500 hover:text-white transition-colors">
-                                <Shuffle size={24} />
+                                <Shuffle size={22} />
                             </button>
                             
                             <div className="flex items-center gap-6">
-                                <button onClick={handlePrev} className="text-zinc-300 hover:text-white transition-colors">
+                                <button onClick={handlePrev} className="text-zinc-300 hover:text-white transition-colors active:scale-90">
                                     <SkipBack size={32} fill="currentColor" />
                                 </button>
                                 
                                 <button 
                                     onClick={togglePlay}
-                                    className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-xl hover:scale-105 transition-transform"
+                                    className="w-20 h-20 rounded-full bg-white flex items-center justify-center shadow-xl hover:scale-105 transition-transform active:scale-95"
                                 >
                                     {isPlaying ? (
                                         <Pause size={32} fill="black" className="text-black" />
@@ -178,14 +200,37 @@ const MobilePlayer = () => {
                                     )}
                                 </button>
 
-                                <button onClick={handleNext} className="text-zinc-300 hover:text-white transition-colors">
+                                <button onClick={handleNext} className="text-zinc-300 hover:text-white transition-colors active:scale-90">
                                     <SkipForward size={32} fill="currentColor" />
                                 </button>
                             </div>
 
                             <button className="text-zinc-500 hover:text-white transition-colors">
-                                <Repeat size={24} />
+                                <Repeat size={22} />
                             </button>
+                        </div>
+
+                        {/* Volume Control */}
+                        <div className="flex items-center gap-4 px-2">
+                             <span className="text-zinc-500"><SkipBack size={16} className="hidden" /></span>
+                             <div className="flex-1 flex items-center gap-4 bg-white/5 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/5">
+                                <span className={`${volume === 0 ? 'text-zinc-500' : 'text-white/60'}`}>
+                                    {volume === 0 ? '🔈' : '🔊'}
+                                </span>
+                                <div className="flex-1 h-1 bg-white/10 rounded-full relative overflow-hidden">
+                                     <input 
+                                        type="range" 
+                                        min="0" max="1" step="0.01" 
+                                        value={volume}
+                                        onChange={(e) => setVolume(Number(e.target.value))}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    />
+                                    <div 
+                                        className="h-full bg-cyan-400 rounded-full"
+                                        style={{ width: `${volume * 100}%` }}
+                                    />
+                                </div>
+                             </div>
                         </div>
 
                     </div>

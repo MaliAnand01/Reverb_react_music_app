@@ -27,17 +27,17 @@ const HomeView = ({ setCurrentView }) => {
             </div>
 
             {/* Recent Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
                 {playlist.slice(0, 6).map((song, index) => (
                     <div 
                         key={song.id}
                         onClick={() => playSong(index)} 
-                        className="flex items-center gap-3 bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 backdrop-blur-sm transition-all rounded-xl overflow-hidden cursor-pointer group pr-4 shadow-lg hover:shadow-2xl hover:scale-[1.02]"
+                        className="flex items-center gap-2 md:gap-3 bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 backdrop-blur-sm transition-all rounded-lg md:rounded-xl overflow-hidden cursor-pointer group pr-2 md:pr-4 shadow-lg hover:shadow-2xl hover:scale-[1.02]"
                     >
-                        <img src={song.image} alt={song.name} className="w-20 h-20 object-cover shadow-2xl" />
-                        <span className="font-bold text-sm truncate text-white/90 group-hover:text-white">{song.name}</span>
+                        <img src={song.image} alt={song.name} className="w-14 h-14 md:w-20 md:h-20 object-cover shadow-2xl" />
+                        <span className="font-bold text-[11px] md:text-sm truncate text-white/90 group-hover:text-white">{song.name}</span>
                         
-                        <div className="ml-auto opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-cyan-400 rounded-full p-2.5 shadow-xl shadow-black/20 scale-100 md:scale-90 md:group-hover:scale-100 hover:scale-110">
+                        <div className="ml-auto hidden md:flex opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-cyan-400 rounded-full p-2.5 shadow-xl shadow-black/20 scale-100 md:scale-90 md:group-hover:scale-100 hover:scale-110">
                              <Play size={20} fill="black" stroke="black" className="ml-0.5" />
                         </div>
                     </div>
@@ -56,23 +56,23 @@ const HomeView = ({ setCurrentView }) => {
                     </span>
                  </div>
                  
-                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                    {playlist.slice(0, 5).map((song, i) => (
+                 <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                    {playlist.slice(0, 6).map((song, i) => (
                          <div 
                             key={song.id} 
                             onClick={() => playSong(i)}
-                            className="bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 p-5 rounded-2xl transition-all cursor-pointer group hover:scale-[1.03] backdrop-blur-md shadow-lg"
+                            className="flex-shrink-0 w-40 md:w-auto bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 p-4 md:p-5 rounded-2xl transition-all cursor-pointer group hover:scale-[1.03] backdrop-blur-md shadow-lg"
                          >
-                            <div className="relative mb-4">
+                            <div className="relative mb-3 md:mb-4">
                                 <img src={song.image} alt={song.name} className="w-full aspect-square object-cover rounded-xl shadow-2xl group-hover:shadow-2xl transition-all duration-500" />
                                 <div className="absolute bottom-2 right-2 translate-y-0 opacity-100 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-300">
-                                    <div className="bg-cyan-400 rounded-full p-3.5 shadow-xl hover:scale-105 hover:bg-cyan-300 shadow-black/30">
-                                        <Play size={22} fill="black" stroke="black" className="ml-0.5" />
+                                    <div className="bg-cyan-400 rounded-full p-2.5 md:p-3.5 shadow-xl hover:scale-105 hover:bg-cyan-300 shadow-black/30">
+                                        <Play size={20} fill="black" stroke="black" className="ml-0.5" />
                                     </div>
                                 </div>
                             </div>
-                            <h3 className="font-bold truncate mb-1 text-white group-hover:text-cyan-400 transition-colors">{song.name}</h3>
-                            <p className="text-sm text-zinc-400 truncate line-clamp-2">{song.artist}</p>
+                            <h3 className="font-bold truncate mb-1 text-sm md:text-base text-white group-hover:text-cyan-400 transition-colors">{song.name}</h3>
+                            <p className="text-xs md:text-sm text-zinc-400 truncate line-clamp-1 md:line-clamp-2">{song.artist}</p>
                          </div>
                     ))}
                  </div>

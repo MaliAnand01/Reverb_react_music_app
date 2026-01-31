@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import useAudio from '../hooks/useAudio';
 import { playlist } from '../data';
 
@@ -67,7 +67,7 @@ export const MusicProvider = ({ children }) => {
         }
     }, [currentSongIndex, loadSong, currentSong]);
 
-    const value = {
+    const value = useMemo(() => ({
         ...audio, // isPlaying, togglePlay, etc.
         currentSong,
         currentSongIndex,
@@ -85,7 +85,27 @@ export const MusicProvider = ({ children }) => {
         toggleRightSidebar: () => setIsRightSidebarOpen(prev => !prev),
         isMobilePlayerOpen,
         setIsMobilePlayerOpen
-    };
+    }), [
+        audio,
+        currentSong,
+        currentSongIndex,
+        likedSongs,
+        handleNext,
+        handlePrev,
+        isPlaylistOpen,
+        isRightSidebarOpen,
+        isMobilePlayerOpen
+    ]);
+
+    useEffect(() => {
+        const handleStorageChange = (e) => {
+            if (e.key === 'likedSongs') {
+                setLikedSongs(JSON.parse(e.newValue || '[]'));
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     return (
         <MusicContext.Provider value={value}>

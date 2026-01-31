@@ -26,15 +26,15 @@ const SearchView = () => {
         <div className="pb-24 pt-4 space-y-8">
             
             {/* Search Input Hero */}
-            <div className="relative max-w-2xl mx-auto group">
-                <div className="relative flex items-center bg-white/5 backdrop-blur-md border border-white/10 rounded-full px-6 py-4 transition-all group-focus-within:bg-white/10 group-focus-within:border-white/20 shadow-xl">
-                    <SearchIcon className="text-zinc-500 mr-4 group-focus-within:text-white transition-colors" size={24} />
+            <div className="relative max-w-2xl mx-auto group px-4 md:px-0">
+                <div className="relative flex items-center bg-white/5 backdrop-blur-md border border-white/10 rounded-full px-5 py-3 md:px-6 md:py-4 transition-all group-focus-within:bg-white/10 group-focus-within:border-white/20 shadow-xl">
+                    <SearchIcon className="text-zinc-500 mr-3 md:mr-4 group-focus-within:text-white transition-colors" size={20} md:size={24} />
                     <input 
                         type="text" 
                         placeholder="What do you want to listen to?" 
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        className="w-full bg-transparent text-white text-lg placeholder:text-zinc-500 focus:outline-none font-medium" 
+                        className="w-full bg-transparent text-white text-base md:text-lg placeholder:text-zinc-500 focus:outline-none font-medium" 
                     />
                 </div>
             </div>
@@ -76,14 +76,14 @@ const SearchView = () => {
             ) : (
                 <div className="space-y-6">
                     <h2 className="text-2xl font-bold px-2">Browse All</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div className="flex md:grid md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
                         {genres.map((genre, i) => (
                             <div 
                                 key={i} 
-                                className={`aspect-[3/2] rounded-2xl p-6 font-bold text-2xl relative overflow-hidden cursor-pointer hover:scale-[1.03] transition-transform bg-gradient-to-br ${genre.color} shadow-lg group`}
+                                className={`flex-shrink-0 w-40 md:w-auto aspect-[4/3] md:aspect-[3/2] rounded-2xl p-4 md:p-6 font-bold text-lg md:text-2xl relative overflow-hidden cursor-pointer hover:scale-[1.03] transition-transform bg-gradient-to-br ${genre.color} shadow-lg group`}
                             >
                                 <span className="relative z-10 text-white drop-shadow-md">{genre.name}</span>
-                                <div className="absolute -bottom-4 -right-4 w-28 h-28 bg-white/20 rotate-[25deg] rounded-2xl blur-sm group-hover:rotate-12 transition-transform duration-500" />
+                                <div className="absolute -bottom-4 -right-4 w-20 h-20 md:w-28 md:h-28 bg-white/20 rotate-[25deg] rounded-2xl blur-sm group-hover:rotate-12 transition-transform duration-500" />
                             </div>
                         ))}
                     </div>

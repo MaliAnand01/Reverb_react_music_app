@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useMemo, useEffect } from 'react';
 
 const AuthContext = createContext();
 
@@ -96,18 +96,30 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const value = useMemo(() => ({ 
+        user, 
+        loading, 
+        login, 
+        signup, 
+        logout, 
+        updateProfile,
+        isAuthModalOpen,
+        openAuthModal,
+        closeAuthModal
+    }), [user, loading, isAuthModalOpen]);
+
+    useEffect(() => {
+        const handleStorageChange = (e) => {
+            if (e.key === 'reverb_user') {
+                setUser(e.newValue ? JSON.parse(e.newValue) : null);
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
     return (
-        <AuthContext.Provider value={{ 
-            user, 
-            loading, 
-            login, 
-            signup, 
-            logout, 
-            updateProfile,
-            isAuthModalOpen,
-            openAuthModal,
-            closeAuthModal
-        }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

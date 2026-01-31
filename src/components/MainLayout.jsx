@@ -43,12 +43,20 @@ const MainLayout = ({ children, currentView, setCurrentView }) => {
                 </div>
             </div>
 
-            {/* Floating Player Bar */}
-            <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-[88%] max-w-md md:w-[95%] md:max-w-5xl md:bottom-6 z-40">
-                <PlayerBar />
+            {/* Bottom Section - Consolidated for Mobile */}
+            <div className="fixed bottom-0 left-0 right-0 z-40 md:static md:z-auto">
+                {/* Floating Player Bar */}
+                <div className="px-4 pb-2 md:px-0 md:pb-0 md:fixed md:bottom-6 md:left-1/2 md:-translate-x-1/2 md:w-[95%] md:max-w-5xl md:z-40">
+                    <PlayerBar />
+                </div>
+
+                {/* Mobile Tab Bar */}
+                <div className="md:hidden">
+                    <MobileTabBar currentView={currentView} setCurrentView={setCurrentView} />
+                </div>
             </div>
 
-            {/* Playlist Overlay (Mobile/Global) */}
+             {/* Playlist Overlay (Mobile/Global) */}
              <Playlist 
                 playlist={playlist}
                 currentSongIndex={currentSongIndex}
@@ -65,8 +73,6 @@ const MainLayout = ({ children, currentView, setCurrentView }) => {
 
              {/* Right Side Player (Now Playing) */}
              <RightSidePlayer />
-
-             <MobileTabBar currentView={currentView} setCurrentView={setCurrentView} />
 
              <MobilePlayer />
         </div>

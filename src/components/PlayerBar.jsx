@@ -1,6 +1,7 @@
 import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX, Repeat, Shuffle, ListMusic, Heart } from 'lucide-react';
 import { useMusic } from '../context/MusicContext';
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 
 const PlayerBar = () => {
     const { 
@@ -42,6 +43,15 @@ const PlayerBar = () => {
         }
     };
 
+    const handleDragEnd = (_, info) => {
+        if (window.innerWidth >= 768) return;
+        if (info.offset.x > 50) {
+            handlePrev();
+        } else if (info.offset.x < -50) {
+            handleNext();
+        }
+    };
+
     const formatTime = (time) => {
         if (!time || isNaN(time)) return "0:00";
         const minutes = Math.floor(time / 60);
@@ -52,34 +62,45 @@ const PlayerBar = () => {
     if (!currentSong) return null;
 
     return (
-        <div className="h-20 bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[2rem] text-white flex items-center justify-between px-6 shadow-2xl shadow-black/50 overflow-hidden relative group">
+        <motion.div 
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleDragEnd}
+            className="h-16 md:h-20 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-[2rem] text-white flex items-center justify-between px-4 md:px-6 shadow-2xl shadow-black/50 overflow-hidden relative group touch-none"
+        >
+            
+            {/* Shimmer Effect */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent w-[200%] -translate-x-full animate-shimmer opacity-30" />
+            </div>
             
             {/* Ambient Glow */}
             <div className="absolute top-0 left-10 w-32 h-1 bg-white/20 blur-lg rounded-full" />
 
             {/* Left: Song Info */}
             <div 
-                className="flex items-center gap-4 flex-1 md:w-[30%] min-w-0 cursor-pointer hover:bg-white/5 p-2 rounded-xl transition-colors"
+                className="flex items-center gap-3 md:gap-4 flex-1 md:w-[30%] min-w-0 cursor-pointer hover:bg-white/5 p-1 md:p-2 rounded-xl transition-colors"
                 onClick={handlePlayerClick}
             >
                 <div className="relative group flex-shrink-0">
                     <img 
                         src={currentSong.image} 
                         alt="Cover" 
-                        className={`w-12 h-12 rounded-full shadow-lg object-cover transition-transform duration-700 ${isPlaying ? 'animate-[spin_10s_linear_infinite]' : ''}`} 
+                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg object-cover transition-transform duration-700 ${isPlaying ? 'animate-[spin_10s_linear_infinite]' : ''}`} 
                         style={{ animationPlayState: isPlaying ? 'running' : 'paused' }}
                     />
                     <div className="absolute inset-0 rounded-full shadow-[inset_0_0_10px_rgba(255,255,255,0.1)] pointer-events-none" />
                 </div>
                 <div className="flex flex-col justify-center overflow-hidden mr-2">
-                    <h4 className="font-bold text-sm tracking-wide hover:text-white cursor-pointer truncate">{currentSong.name}</h4>
-                    <span className="text-xs text-zinc-400 hover:text-white cursor-pointer truncate">{currentSong.artist}</span>
+                    <h4 className="font-bold text-[13px] md:text-sm tracking-wide hover:text-white cursor-pointer truncate">{currentSong.name}</h4>
+                    <span className="text-[11px] md:text-xs text-zinc-400 hover:text-white cursor-pointer truncate">{currentSong.artist}</span>
                 </div>
                 <button 
                     onClick={(e) => { e.stopPropagation(); toggleLike(currentSong.id); }}
-                    className={`ml-1 md:ml-4 transition-transform active:scale-90 ${isLiked ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
+                    className={`ml-1 md:ml-4 transition-transform active:scale-90 flex-shrink-0 ${isLiked ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
                 >
-                    <Heart size={20} fill={isLiked ? "currentColor" : "none"} />
+                    <Heart size={18} md:size={20} fill={isLiked ? "currentColor" : "none"} />
                 </button>
             </div>
 
@@ -147,13 +168,15 @@ const PlayerBar = () => {
             </div>
 
             {/* Mobile Play Button */}
-            <button 
-                onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                className="md:hidden p-3 text-white ml-2 flex-shrink-0"
-            >
-                {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
-            </button>
-        </div>
+            <div className="flex items-center md:hidden">
+                <button 
+                    onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                    className="p-2 text-white active:scale-90 transition-transform"
+                >
+                    {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
+                </button>
+            </div>
+        </motion.div>
     );
 };
 
