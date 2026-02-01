@@ -1,6 +1,6 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX, Repeat, Shuffle, ListMusic, Heart } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Repeat, Shuffle, ListMusic, Heart, Sliders } from 'lucide-react';
 import { useMusic } from '../context/MusicContext';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 const PlayerBar = () => {
@@ -10,29 +10,60 @@ const PlayerBar = () => {
         togglePlay, 
         handleNext, 
         handlePrev,
-        currentTime,
+        currentTime: contextTime, // Use mainly for sync, not frequent updates
         duration,
         seek,
         volume,
         setVolume,
         togglePlaylist,
+        isPlaylistOpen,
+        openEqualizer,
         likedSongs,
         toggleLike,
         toggleRightSidebar,
-        setIsMobilePlayerOpen
+        setIsMobilePlayerOpen,
+        playbackSpeed,
+        setPlaybackSpeed,
+        audioRef // Get direct access
     } = useMusic();
 
     const [dragValue, setDragValue] = useState(null);
+    const [localTime, setLocalTime] = useState(0);
+    const rafRef = useRef();
 
-    const isLiked = likedSongs.includes(currentSong.id);
+    const isLiked = currentSong ? likedSongs.some(id => String(id) === String(currentSong.id)) : false;
+
+    // Smooth Progress Loop
+    useEffect(() => {
+        const loop = () => {
+            if (audioRef?.current && !audioRef.current.paused) {
+                setLocalTime(audioRef.current.currentTime);
+            }
+            rafRef.current = requestAnimationFrame(loop);
+        };
+        
+        loop(); // Start loop immediately
+        
+        return () => {
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        };
+    }, [audioRef, isPlaying]);
+
+    // Sync with context time (seek/pause updates)
+    useEffect(() => {
+        setLocalTime(contextTime);
+    }, [contextTime]);
 
     const handleSeekChange = (e) => {
         setDragValue(Number(e.target.value));
+        setLocalTime(Number(e.target.value)); // Instant feedback
     };
 
     const handleSeekEnd = (e) => {
-        seek(Number(e.target.value));
+        const val = Number(e.target.value);
+        seek(val);
         setDragValue(null);
+        setLocalTime(val);
     };
     
     const handlePlayerClick = () => {
@@ -61,13 +92,17 @@ const PlayerBar = () => {
 
     if (!currentSong) return null;
 
+    // Display Logic
+    const displayTime = dragValue !== null ? dragValue : localTime;
+    const progressPercent = (displayTime / (duration || 1)) * 100;
+
     return (
         <motion.div 
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.2}
             onDragEnd={handleDragEnd}
-            className="h-16 md:h-20 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-[2rem] text-white flex items-center justify-between px-4 md:px-6 shadow-2xl shadow-black/50 overflow-hidden relative group touch-none"
+            className="h-16 md:h-20 bg-black/60 md:bg-black/40 backdrop-blur-lg md:backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-[2rem] text-white flex items-center justify-between px-4 md:px-6 shadow-2xl shadow-black/50 overflow-hidden relative group touch-none"
         >
             
             {/* Shimmer Effect */}
@@ -87,7 +122,7 @@ const PlayerBar = () => {
                     <img 
                         src={currentSong.image} 
                         alt="Cover" 
-                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg object-cover transition-transform duration-700 ${isPlaying ? 'animate-[spin_10s_linear_infinite]' : ''}`} 
+                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full shadow-lg object-contain bg-zinc-900 transition-transform duration-700 ${isPlaying ? 'animate-[spin_10s_linear_infinite]' : ''}`} 
                         style={{ animationPlayState: isPlaying ? 'running' : 'paused' }}
                     />
                     <div className="absolute inset-0 rounded-full shadow-[inset_0_0_10px_rgba(255,255,255,0.1)] pointer-events-none" />
@@ -98,7 +133,8 @@ const PlayerBar = () => {
                 </div>
                 <button 
                     onClick={(e) => { e.stopPropagation(); toggleLike(currentSong.id); }}
-                    className={`ml-1 md:ml-4 transition-transform active:scale-90 flex-shrink-0 ${isLiked ? 'text-cyan-400' : 'text-zinc-500 hover:text-white'}`}
+                    className={`ml-1 md:ml-4 transition-transform active:scale-90 flex-shrink-0 ${isLiked ? '' : 'text-zinc-500 hover:text-white'}`}
+                    style={{ color: isLiked ? 'var(--theme-color)' : '' }}
                 >
                     <Heart size={18} md:size={20} fill={isLiked ? "currentColor" : "none"} />
                 </button>
@@ -120,13 +156,13 @@ const PlayerBar = () => {
                 </div>
                 
                 <div className="flex items-center w-full gap-3 text-[10px] text-zinc-400 font-mono font-medium">
-                    <span className="min-w-[30px] text-right">{formatTime(dragValue !== null ? dragValue : currentTime)}</span>
+                    <span className="min-w-[30px] text-right">{formatTime(displayTime)}</span>
                     <div className="relative w-full h-1 group flex items-center">
                         <input 
                             type="range" 
                             min="0" 
                             max={duration || 100}
-                            value={dragValue !== null ? dragValue : currentTime}
+                            value={displayTime}
                             onChange={handleSeekChange}
                             onMouseUp={handleSeekEnd}
                             onTouchEnd={handleSeekEnd}
@@ -135,8 +171,11 @@ const PlayerBar = () => {
                          {/* Visual Track */}
                         <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
                              <div 
-                                className="h-full bg-white group-hover:bg-cyan-400 rounded-full transition-all duration-100" 
-                                style={{ width: `${((dragValue !== null ? dragValue : currentTime) / (duration || 1)) * 100}%` }}
+                                className="h-full rounded-full transition-all duration-100 ease-linear" 
+                                style={{ 
+                                    width: `${progressPercent}%`,
+                                    backgroundColor: 'var(--theme-color)' 
+                                }}
                              />
                         </div>
                     </div>
@@ -146,6 +185,23 @@ const PlayerBar = () => {
 
             {/* Right: Volume & Extras (Desktop) */}
             <div className="hidden md:flex items-center justify-end w-[30%] gap-4">
+                <button 
+                    onClick={() => {
+                        const speeds = [0.5, 1.0, 1.5, 2.0];
+                        const nextIdx = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
+                        setPlaybackSpeed(speeds[nextIdx]);
+                    }}
+                    className="text-[10px] font-bold bg-white/10 hover:bg-white/20 px-2 py-1 rounded-md text-zinc-300 hover:text-white transition-colors min-w-[40px]"
+                >
+                    {playbackSpeed}x
+                </button>
+                <button 
+                    onClick={openEqualizer}
+                    className="text-zinc-400 hover:text-white transition-colors hover:scale-110"
+                    title="Equalizer"
+                >
+                    <Sliders size={18} />
+                </button>
                 <button onClick={togglePlaylist} className="text-zinc-400 hover:text-white transition-colors"><ListMusic size={20} /></button>
                 <div className="flex items-center gap-2 w-28 group">
                     <button onClick={() => setVolume(volume === 0 ? 0.5 : 0)} className="text-zinc-400 hover:text-white">

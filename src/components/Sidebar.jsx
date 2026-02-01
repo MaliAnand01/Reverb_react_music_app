@@ -1,5 +1,6 @@
 import { Home, Search, Library, Heart, PlusSquare, AudioLines } from 'lucide-react';
 import UserBadge from './UserBadge';
+import { memo } from 'react';
 
 const NavItem = ({ icon: Icon, label, view, currentView, setCurrentView, activeColor = "text-cyan-400" }) => (
     <button 
@@ -62,4 +63,4 @@ const Sidebar = ({ currentView, setCurrentView }) => {
     );
 };
 
-export default Sidebar;
+export default memo(Sidebar);

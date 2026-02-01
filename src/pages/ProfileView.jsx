@@ -5,9 +5,14 @@ import { useState } from 'react';
 
 const ProfileView = () => {
     const { user, updateProfile, logout } = useAuth();
+    
+    // Extract metadata safely
+    const displayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
+    const avatar = user?.user_metadata?.avatar || null;
+
     const { register, handleSubmit, formState: { errors } } = useForm({
         defaultValues: {
-            name: user?.name || '',
+            name: displayName,
             email: user?.email || '',
             password: ''
         }
@@ -51,23 +56,23 @@ const ProfileView = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto pt-8 pb-24">
-            <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">Account Settings</h1>
+        <div className="max-w-2xl mx-auto pt-4 md:pt-8 pb-24 px-3 md:px-0">
+            <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8 text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">Account Settings</h1>
 
             <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 shadow-2xl relative overflow-hidden">
                 {/* Decorative Elements */}
                  <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
 
                 <div className="relative z-10">
-                    <div className="flex items-center gap-8 mb-8">
+                    <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-8 mb-8 text-center md:text-left">
                         {/* Avatar Upload */}
-                        <div className="relative group cursor-pointer">
-                            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white/10 shadow-xl">
-                                {user.avatar ? (
-                                    <img src={user.avatar} className="w-full h-full object-cover" />
+                        <div className="relative group cursor-pointer flex-shrink-0">
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden border-4 border-white/10 shadow-xl mx-auto">
+                                {avatar ? (
+                                    <img src={avatar} className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-4xl font-bold text-zinc-600 uppercase">
-                                        {user.name[0]}
+                                        {displayName[0]}
                                     </div>
                                 )}
                             </div>
@@ -78,17 +83,17 @@ const ProfileView = () => {
                         </div>
 
                         <div>
-                            <h2 className="text-2xl font-bold text-white mb-1">{user.name}</h2>
+                            <h2 className="text-2xl font-bold text-white mb-1">{displayName}</h2>
                             <p className="text-zinc-400 text-sm">{user.email}</p>
-                            <span className="inline-block mt-2 px-3 py-1 bg-gradient-to-r from-yellow-600/20 to-yellow-400/20 text-yellow-200 text-xs font-bold rounded-full border border-yellow-500/20">
+                            <span className="inline-block mt-2 px-3 py-1 bg-gradient-to-r from-cyan-600/20 to-emerald-400/20 text-cyan-200 text-xs font-bold rounded-full border border-cyan-500/20">
                                 PREMIUM MEMBER
                             </span>
                         </div>
                     </div>
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
+                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                            <div className="space-y-1.5 md:space-y-2">
                                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Full Name</label>
                                 <input 
                                     {...register("name", { required: "Name is required" })}
@@ -98,7 +103,7 @@ const ProfileView = () => {
                                 {errors.name && <span className="text-red-400 text-xs">{errors.name.message}</span>}
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-1.5 md:space-y-2">
                                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Email (Locked)</label>
                                 <input 
                                     {...register("email")}
@@ -108,7 +113,7 @@ const ProfileView = () => {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-1.5 md:space-y-2">
                             <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
                                 {isEditing ? "New Password" : "Password"}
                             </label>
@@ -122,38 +127,38 @@ const ProfileView = () => {
                             {errors.password && <span className="text-red-400 text-xs">{errors.password.message}</span>}
                         </div>
 
-                        <div className="pt-4 flex items-center justify-between border-t border-white/5 mt-8">
+                        <div className="pt-4 flex flex-col-reverse md:flex-row items-center md:justify-between gap-4 border-t border-white/5 mt-6 md:mt-8">
                              <button
                                 type="button" 
                                 onClick={logout}
-                                className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors font-medium text-sm"
+                                className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors font-medium text-sm w-full md:w-auto justify-center md:justify-start py-2"
                             >
                                 <LogOut size={18} />
                                 Sign Out
                             </button>
 
                             {isEditing ? (
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 w-full md:w-auto">
                                     <button 
                                         type="button" 
                                         onClick={() => setIsEditing(false)}
-                                        className="px-6 py-2 rounded-xl text-zinc-300 hover:text-white hover:bg-white/5 transition-colors font-medium"
+                                        className="flex-1 md:flex-none px-6 py-2 rounded-xl text-zinc-300 hover:text-white hover:bg-white/5 transition-colors font-medium text-center"
                                     >
                                         Cancel
                                     </button>
                                     <button 
                                         type="submit"
-                                        className="px-6 py-2 bg-white text-black rounded-xl font-bold hover:scale-105 transition-transform flex items-center gap-2"
+                                        className="flex-1 md:flex-none px-6 py-2 bg-white text-black rounded-xl font-bold hover:scale-105 transition-transform flex items-center justify-center gap-2"
                                     >
                                         <Save size={18} />
-                                        Save Changes
+                                        Save
                                     </button>
                                 </div>
                             ) : (
                                 <button 
                                     type="button"
                                     onClick={() => setIsEditing(true)}
-                                    className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors"
+                                    className="w-full md:w-auto px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors"
                                 >
                                     Edit Profile
                                 </button>

@@ -19,8 +19,8 @@ const UserBadge = ({ setCurrentView, collapsed = false }) => {
                 className="w-12 h-12 rounded-full relative group transition-transform hover:scale-105"
             >
                 <div className="w-full h-full rounded-2xl bg-zinc-800 overflow-hidden flex items-center justify-center border border-white/10 shadow-lg">
-                    {user?.avatar ? (
-                        <img src={user.avatar} alt="User" className="w-full h-full object-cover" />
+                    {user?.user_metadata?.avatar ? (
+                        <img src={user.user_metadata.avatar} alt="User" className="w-full h-full object-cover" />
                     ) : (
                         <User size={20} className="text-zinc-400 group-hover:text-white" />
                     )}
@@ -37,15 +37,15 @@ const UserBadge = ({ setCurrentView, collapsed = false }) => {
             className="flex items-center gap-3 w-full bg-white/5 hover:bg-white/10 p-3 rounded-2xl transition-all group backdrop-blur-md border border-white/5"
         >
             <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center border border-white/10 shadow-lg group-hover:scale-105 transition-transform">
-                {user?.avatar ? (
-                    <img src={user.avatar} alt="User" className="w-full h-full object-cover" />
+                {user?.user_metadata?.avatar ? (
+                    <img src={user.user_metadata.avatar} alt="User" className="w-full h-full object-cover" />
                 ) : (
                     <User size={20} className="text-zinc-400 group-hover:text-white" />
                 )}
             </div>
             <div className="flex flex-col items-start min-w-0">
                 <span className="text-sm font-bold text-white truncate max-w-[120px]">
-                    {user ? user.name : 'Sign In'}
+                    {user ? (user.user_metadata?.name || user.email?.split('@')[0]) : 'Sign In'}
                 </span>
                 <span className="text-xs text-zinc-500 font-medium truncate max-w-[120px]">
                     {user ? 'Premium Member' : 'Join Reverb'}

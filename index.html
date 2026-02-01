@@ -10,10 +10,20 @@
     <meta property="og:title" content="Reverb" />
     <meta property="og:description" content="Immersive Web Music Player" />
     <meta property="og:image" content="/vite.svg" />
+    <link rel="manifest" href="/manifest.json" />
     <title>Reverb</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => console.log('SW registered:', registration.scope))
+            .catch(err => console.log('SW registration failed:', err));
+        });
+      }
+    </script>
   </body>
 </html>

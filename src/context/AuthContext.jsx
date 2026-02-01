@@ -1,100 +1,109 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import { createContext, useContext, useMemo, useEffect, useCallback, useReducer } from 'react';
+import { supabase } from '../utils/supabaseClient';
 
 const AuthContext = createContext();
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
+const initialState = {
+    user: null,
+    isAuthModalOpen: false,
+    loading: true
+};
+
+function authReducer(state, action) {
+    switch (action.type) {
+        case 'SET_USER':
+            return { ...state, user: action.payload, loading: false };
+        case 'LOGOUT':
+            return { ...state, user: null, loading: false };
+        case 'SET_AUTH_MODAL':
+            return { ...state, isAuthModalOpen: action.payload };
+        case 'SET_LOADING':
+            return { ...state, loading: action.payload };
+        default:
+            return state;
+    }
+}
+
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(() => {
-        const savedUser = localStorage.getItem('reverb_user');
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
-    // Loading is effectively synchronous with lazy init, so it's always false after mount
-    const loading = false;
-    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [state, dispatch] = useReducer(authReducer, initialState);
+    
+    const { user, isAuthModalOpen, loading } = state;
 
-    const openAuthModal = () => setIsAuthModalOpen(true);
-    const closeAuthModal = () => setIsAuthModalOpen(false);
-
-    const login = (email, password) => {
-        // In a real app we would ping an API. 
-        // Here we simulate checking against a specific "stored" user for demo purposes, 
-        // OR we just allow login if it matches the current generic session we want to create.
-        
-        // For this local-only version, let's treat "signup" as creating the session.
-        // And "login" checks if the credentials match what's in local storage (if any).
-        
-        // const stored = localStorage.getItem('reverb_users_db'); // "Database" of users?
-        // Let's keep it simple: Single user session for now as requested "user can login/signup".
-        
-        // We'll simulate a DB using an object in localStorage
-        const db = JSON.parse(localStorage.getItem('reverb_users_db') || '{}');
-        
-        if (db[email] && db[email].password === password) {
-            const sessionUser = { ...db[email] };
-            delete sessionUser.password; // Don't keep password in session state
-            setUser(sessionUser);
-            localStorage.setItem('reverb_user', JSON.stringify(sessionUser));
-            return { success: true };
-        }
-        
-        return { success: false, message: "Invalid credentials" };
-    };
-
-    const signup = (data) => {
-        // data: { name, email, password }
-        const db = JSON.parse(localStorage.getItem('reverb_users_db') || '{}');
-        
-        if (db[data.email]) {
-            return { success: false, message: "User already exists" };
+    useEffect(() => {
+        // Handle initial session
+        if (!supabase) {
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return;
         }
 
-        // Save to "DB"
-        db[data.email] = {
-            name: data.name,
-            email: data.email,
-            password: data.password,
-            avatar: null // Default null
-        };
-        localStorage.setItem('reverb_users_db', JSON.stringify(db));
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                dispatch({ type: 'SET_USER', payload: session.user });
+            } else {
+                dispatch({ type: 'SET_LOADING', payload: false });
+            }
+        });
 
-        // Auto login
-        const sessionUser = { ...db[data.email] };
-        delete sessionUser.password;
-        setUser(sessionUser);
-        localStorage.setItem('reverb_user', JSON.stringify(sessionUser));
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            dispatch({ type: 'SET_USER', payload: session?.user || null });
+        });
+
+        return () => subscription?.unsubscribe();
+    }, []);
+
+    const openAuthModal = useCallback(() => dispatch({ type: 'SET_AUTH_MODAL', payload: true }), []);
+    const closeAuthModal = useCallback(() => dispatch({ type: 'SET_AUTH_MODAL', payload: false }), []);
+
+    const login = useCallback(async (email, password) => {
+        if (!supabase) return { success: false, message: 'Supabase not initialized' };
+        dispatch({ type: 'SET_LOADING', payload: true });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        
+        if (error) {
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return { success: false, message: error.message };
+        }
         
         return { success: true };
-    };
+    }, []);
 
-    const logout = () => {
-        setUser(null);
-        localStorage.removeItem('reverb_user');
-    };
-
-    const updateProfile = (updates) => {
-        // updates: { name, avatar, password? }
-        if (!user) return;
-
-        const db = JSON.parse(localStorage.getItem('reverb_users_db') || '{}');
-        const currentUserData = db[user.email];
-
-        if (currentUserData) {
-            const updatedUserData = { ...currentUserData, ...updates };
-            // If password is in updates, it gets saved to DB
-            
-            db[user.email] = updatedUserData;
-            localStorage.setItem('reverb_users_db', JSON.stringify(db));
-
-            // Update session
-            const sessionUser = { ...updatedUserData };
-            delete sessionUser.password;
-            setUser(sessionUser);
-            localStorage.setItem('reverb_user', JSON.stringify(sessionUser));
+    const signup = useCallback(async (data) => {
+        if (!supabase) return { success: false, message: 'Supabase not initialized' };
+        dispatch({ type: 'SET_LOADING', payload: true });
+        const { error } = await supabase.auth.signUp({
+            email: data.email,
+            password: data.password,
+            options: {
+                data: {
+                    name: data.name
+                }
+            }
+        });
+        
+        if (error) {
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return { success: false, message: error.message };
         }
-    };
+
+        return { success: true };
+    }, []);
+
+    const logout = useCallback(async () => {
+        await supabase.auth.signOut();
+    }, []);
+
+    const updateProfile = useCallback(async (updates) => {
+        const { data, error } = await supabase.auth.updateUser({
+            data: updates
+        });
+        if (!error) {
+            dispatch({ type: 'SET_USER', payload: data.user });
+        }
+    }, []);
 
     const value = useMemo(() => ({ 
         user, 
@@ -106,17 +115,17 @@ export const AuthProvider = ({ children }) => {
         isAuthModalOpen,
         openAuthModal,
         closeAuthModal
-    }), [user, loading, isAuthModalOpen]);
-
-    useEffect(() => {
-        const handleStorageChange = (e) => {
-            if (e.key === 'reverb_user') {
-                setUser(e.newValue ? JSON.parse(e.newValue) : null);
-            }
-        };
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
+    }), [
+        user, 
+        loading, 
+        login, 
+        signup, 
+        logout, 
+        updateProfile, 
+        isAuthModalOpen, 
+        openAuthModal, 
+        closeAuthModal
+    ]);
 
     return (
         <AuthContext.Provider value={value}>
