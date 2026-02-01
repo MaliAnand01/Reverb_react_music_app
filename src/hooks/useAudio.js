@@ -1,160 +1,203 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
+/**
+ * useAudio Hook
+ * 
+ * Manages HTML5 Audio element and Web Audio API for playback control, equalization, and visualization.
+ * 
+ * @param {number} initialVolume Starting volume (0-1)
+ * @param {Function} onEndedCallback Callback when song finishes
+ * @returns {Object} Audio state and controls
+ */
 const useAudio = (initialVolume = 0.5, onEndedCallback) => {
-    const audioRef = useRef(new Audio());
     const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0); // Only updated on pause/seek for sync
     const [duration, setDuration] = useState(0);
     const [volume, setVolumeState] = useState(initialVolume);
-    const [audioSrc, setAudioSrc] = useState(null);
     const [isReady, setIsReady] = useState(false);
 
-    // Audio setup and general event listeners
+    // Equalizer State
+    const [presets, setPresets] = useState({
+        bass: 0,
+        mid: 0,
+        treble: 0,
+        name: 'Flat'
+    });
+
+    // Persistent native Audio object
+    const audioRef = useRef(new Audio());
+
+    // Web Audio API Nodes
+    const audioContextRef = useRef(null);
+    const sourceNodeRef = useRef(null);
+    const bassNodeRef = useRef(null);
+    const midNodeRef = useRef(null);
+    const trebleNodeRef = useRef(null);
+    const analyserNodeRef = useRef(null);
+
+    // Initialize Web Audio API
+    const initAudioContext = useCallback(() => {
+        if (!audioContextRef.current) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+
+            const ctx = new AudioContext();
+            audioContextRef.current = ctx;
+
+            const source = ctx.createMediaElementSource(audioRef.current);
+            sourceNodeRef.current = source;
+
+            // Biquad Filters
+            const bass = ctx.createBiquadFilter();
+            bass.type = 'lowshelf';
+            bass.frequency.value = 320;
+            bassNodeRef.current = bass;
+
+            const mid = ctx.createBiquadFilter();
+            mid.type = 'peaking';
+            mid.frequency.value = 1000;
+            mid.Q.value = 0.5;
+            midNodeRef.current = mid;
+
+            const treble = ctx.createBiquadFilter();
+            treble.type = 'highshelf';
+            treble.frequency.value = 3200;
+            trebleNodeRef.current = treble;
+
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 64;
+            analyserNodeRef.current = analyser;
+
+            // Connect Chain
+            source.connect(bass);
+            bass.connect(mid);
+            mid.connect(treble);
+            treble.connect(analyser);
+            analyser.connect(ctx.destination);
+
+            // Set initial values
+            bass.gain.value = presets.bass;
+            mid.gain.value = presets.mid;
+            treble.gain.value = presets.treble;
+        } else if (audioContextRef.current.state === 'suspended') {
+            audioContextRef.current.resume();
+        }
+    }, [presets]);
+
+    // Update Equalizer Gains
+    const setEqualizer = useCallback((newPresets) => {
+        setPresets(newPresets);
+
+        if (bassNodeRef.current && midNodeRef.current && trebleNodeRef.current) {
+            const now = audioContextRef.current.currentTime;
+            bassNodeRef.current.gain.setTargetAtTime(newPresets.bass, now, 0.1);
+            midNodeRef.current.gain.setTargetAtTime(newPresets.mid, now, 0.1);
+            trebleNodeRef.current.gain.setTargetAtTime(newPresets.treble, now, 0.1);
+        }
+    }, []);
+
+    const togglePlay = useCallback(() => {
+        initAudioContext();
+
+        if (isPlaying) {
+            audioRef.current.pause();
+            // Sync state on pause
+            setCurrentTime(audioRef.current.currentTime);
+        } else {
+            audioRef.current.play().catch(err => console.error("Playback failed:", err));
+        }
+        setIsPlaying(prev => !prev);
+    }, [isPlaying, initAudioContext]);
+
+    const seek = useCallback((time) => {
+        if (Number.isFinite(time)) {
+            audioRef.current.currentTime = time;
+            setCurrentTime(time); // Update state immediately on seek
+        }
+    }, []);
+
+    const setVolume = useCallback((val) => {
+        const newVolume = Math.min(1, Math.max(0, val));
+        audioRef.current.volume = newVolume;
+        setVolumeState(newVolume);
+    }, []);
+
+    const loadSong = useCallback((src, autoPlay = true) => {
+        if (!src) return;
+
+        setIsReady(false);
+        setCurrentTime(0); // Reset time
+        audioRef.current.crossOrigin = "anonymous";
+        audioRef.current.src = src;
+        audioRef.current.load();
+
+        if (autoPlay) {
+            initAudioContext();
+            audioRef.current.play()
+                .then(() => setIsPlaying(true))
+                .catch(err => {
+                    console.error("Autoplay failed:", err);
+                    setIsPlaying(false);
+                });
+        } else {
+            setIsPlaying(false);
+        }
+    }, [initAudioContext]);
+
     useEffect(() => {
         const audio = audioRef.current;
-        // audio.volume = volume; // Handled by separate effect
+        audio.volume = volume;
 
-        const setAudioData = () => {
+        // Optimized: Don't update state on every tick to prevent re-renders
+        // Consumers should use audioRef or a local animation loop for smooth progress bars
+        /* const handleTimeUpdate = () => setCurrentTime(audio.currentTime); */
+
+        const handleLoadedMetadata = () => {
             setDuration(audio.duration);
-            setCurrentTime(audio.currentTime);
             setIsReady(true);
         };
-
-        const setAudioTime = () => {
-            setCurrentTime(audio.currentTime);
+        const handleEnded = () => {
+            setIsPlaying(false);
+            if (onEndedCallback) onEndedCallback();
         };
-
-        const onError = (e) => {
-            console.error("Audio error:", e, audio.error);
+        const handleError = (e) => {
+            console.error("Audio Error:", e);
             setIsPlaying(false);
             setIsReady(false);
         };
 
-        const onCanPlay = () => setIsReady(true);
-
-        // Persistent listeners
-        audio.addEventListener('loadedmetadata', setAudioData);
-        audio.addEventListener('timeupdate', setAudioTime);
-        audio.addEventListener('canplay', onCanPlay);
-        audio.addEventListener('error', onError);
+        // audio.addEventListener('timeupdate', handleTimeUpdate); // Removed for performance
+        audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+        audio.addEventListener('ended', handleEnded);
+        audio.addEventListener('error', handleError);
 
         return () => {
-            audio.removeEventListener('loadedmetadata', setAudioData);
-            audio.removeEventListener('timeupdate', setAudioTime);
-            audio.removeEventListener('canplay', onCanPlay);
-            audio.removeEventListener('error', onError);
-            audio.pause(); // Only pause when component completely unmounts
+            // audio.removeEventListener('timeupdate', handleTimeUpdate);
+            audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            audio.removeEventListener('ended', handleEnded);
+            audio.removeEventListener('error', handleError);
         };
-    }, []);
+    }, [onEndedCallback, volume]);
 
-    // Handle onEnded callback specifically to avoid full re-initialization
-    useEffect(() => {
-        const audio = audioRef.current;
-        const onEnded = () => {
-            setIsPlaying(false);
-            if (onEndedCallback) onEndedCallback();
-        };
-
-        audio.addEventListener('ended', onEnded);
-        return () => {
-            audio.removeEventListener('ended', onEnded);
-        };
-    }, [onEndedCallback]);
-
-    // Handle source change
-    useEffect(() => {
-        if (!audioSrc) return;
-
-        const audio = audioRef.current;
-
-        // Only update if src changed
-        if (audio.src !== audioSrc) {
-            audio.src = audioSrc;
-            audio.currentTime = 0; // Reset time on new song
-
-            // Avoid setting state in effect if possible or just accept it (logic requirement)
-            // But we can setIsReady immediately if we assume false on change
-            // setIsReady(false) causes re-render.
-            // Better to wrap in a functional update or just let it be.
-            // The lint error was "Calling setState synchronously within an effect".
-            // We can move setIsReady(false) to where setAudioSrc is called?
-            // No, setAudioSrc is in loadSong.
-            // Let's rely on loadSong to set isReady=false optionally?
-            // Actually, we can assume 'loadstart' event will handle readiness?
-            // For now, let's keep setIsReady(false) but wrapped or ignored IF it's critical.
-            // OR better: use a ref for 'isReady' to prevent render loops? No we need UI update.
-            // The issue is setting state during render phase or immediate effect? 
-            // It's in useEffect, which is fine usually, unless it triggers immediate re-render of same component.
-            // The loop comes if deps change. audioSrc changes -> effect -> setIsReady.
-            // This is standard. Why did lint complain? 
-            // "Calling setState synchronously within an effect... can hurt performance".
-            // It suggests updates to external system.
-            // Let's move setIsReady(false) to the loadSong function!
-
-            audio.load();
-        }
-    }, [audioSrc]);
-
-    // Handle play/pause
-    useEffect(() => {
-        const audio = audioRef.current;
-        if (isPlaying) {
-            if (isReady && audio.paused) {
-                const playPromise = audio.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        // Suppress NotAllowedError (autoplay blocked) and AbortError (interrupted by pause)
-                        if (error.name === 'NotAllowedError') {
-                            setIsPlaying(false);
-                        } else if (error.name === 'AbortError') {
-                            // Autoplay interrupted or rapid toggling, safe to ignore
-                        } else {
-                            console.error("Play prevented:", error);
-                        }
-                    });
-                }
-            }
-        } else {
-            if (!audio.paused) {
-                audio.pause();
-            }
-        }
-    }, [isPlaying, isReady]);
-
-    useEffect(() => {
-        audioRef.current.volume = volume;
-    }, [volume]);
-
-    const togglePlay = () => setIsPlaying(!isPlaying);
-
-    const seek = (time) => {
-        const audio = audioRef.current;
-        if (!isFinite(time) || !audio) return;
-
-        // Clamp time to duration
-        const newTime = Math.min(Math.max(0, time), duration || 0);
-
-        audio.currentTime = newTime;
-        setCurrentTime(newTime);
-    };
-
-    const setVolume = (val) => {
-        const clamped = Math.min(1, Math.max(0, val));
-        setVolumeState(clamped);
-    };
-
-    const loadSong = (src, autoPlay = true) => {
-        if (src === audioSrc) return; // Prevent reload of same song
-        setIsReady(false); // Reset ready state immediately on load
-        setAudioSrc(src);
-        if (autoPlay) {
-            setIsPlaying(true);
-        } else {
-            setIsPlaying(false);
-        }
-    };
-
-    return {
+    return useMemo(() => ({
+        audioRef, // Exposed for direct access
+        isPlaying,
+        currentTime, // Now only updates on significant events, not constantly
+        duration,
+        volume,
+        isReady,
+        togglePlay,
+        seek,
+        setVolume,
+        loadSong,
+        setIsPlaying,
+        setSpeed: (rate) => {
+            audioRef.current.playbackRate = rate;
+        },
+        equalizer: presets,
+        setEqualizer,
+        analyser: analyserNodeRef.current
+    }), [
         isPlaying,
         currentTime,
         duration,
@@ -164,8 +207,9 @@ const useAudio = (initialVolume = 0.5, onEndedCallback) => {
         seek,
         setVolume,
         loadSong,
-        setIsPlaying
-    };
+        presets,
+        setEqualizer
+    ]);
 };
 
 export default useAudio;

@@ -3,7 +3,7 @@ export const playlist = [
         id: 1,
         name: "Blinding Lights",
         artist: "The Weeknd",
-        image: "/img/blinding_lights.png",
+        image: "/img/blinding_lights.webp",
         audio: "https://res.cloudinary.com/dgopx1osv/video/upload/v1748895502/pf6binaj3qvbhsknb0rg.mp3"
     },
     {
@@ -17,7 +17,7 @@ export const playlist = [
         id: 3,
         name: "Watermelon Sugar",
         artist: "Harry Styles",
-        image: "/img/Watermelon_Sugar.png",
+        image: "/img/Watermelon_Sugar.webp",
         audio: "https://res.cloudinary.com/dgopx1osv/video/upload/v1748895493/vcsriagueh19kytectqu.mp3"
     },
     {
@@ -31,21 +31,21 @@ export const playlist = [
         id: 5,
         name: "Good For You",
         artist: "Selena Gomez",
-        image: "/img/good_for_you.png",
+        image: "/img/good_for_you.webp",
         audio: "https://res.cloudinary.com/dgopx1osv/video/upload/v1748895486/egviyuzdialsc5os31rm.mp3"
     },
     {
         id: 6,
         name: "As It Was",
         artist: "Harry Styles",
-        image: "/img/As_It_Was.png",
+        image: "/img/As_It_Was.webp",
         audio: "https://res.cloudinary.com/dgopx1osv/video/upload/v1748895499/ujb5rk1uxxyhthfcfvke.mp3"
     },
     {
         id: 7,
         name: "Heat Waves",
         artist: "Glass Animals",
-        image: "/img/Heat_Waves.png",
+        image: "/img/Heat_Waves.webp",
         audio: "https://res.cloudinary.com/dgopx1osv/video/upload/v1748895486/hroghn12whtrysvnuqvr.mp3"
     },
     {
@@ -73,7 +73,7 @@ export const playlist = [
         id: 11,
         name: "Closer",
         artist: "The Chainsmokers ft. Halsey",
-        image: "/img/closer.jpg",
+        image: "/img/closer.webp",
         audio: "https://res.cloudinary.com/dgopx1osv/video/upload/v1748895507/hctfymstp7owrjot9yjg.mp3"
     },
     {
@@ -94,21 +94,21 @@ export const playlist = [
         id: 14,
         name: "Call Aundi",
         artist: "Yo Yo Honey Singh",
-        image: "/img/call_aundi.jpg",
+        image: "/img/call_aundi.webp",
         audio: "https://res.cloudinary.com/dgopx1osv/video/upload/v1748895509/aajxuktntjucjgiun477.mp3"
     },
     {
         id: 15,
         name: "Desi Kalakaar",
         artist: "Yo Yo Honey Singh",
-        image: "/img/desi_kalakaar.jpg",
+        image: "/img/desi_kalakaar.webp",
         audio: "https://res.cloudinary.com/dgopx1osv/video/upload/v1748895485/adjemgaydondh7oiz3ma.mp3"
     },
     {
         id: 16,
         name: "Mitti Di Khushboo",
         artist: "Ayushmann Khurrana",
-        image: "/img/mitti_di_khusboo.jpg",
+        image: "/img/mitti_di_khusboo.webp",
         audio: "https://res.cloudinary.com/dgopx1osv/video/upload/v1748895489/ctdnj8h9jqogaoqnfksn.mp3"
     },
 ];

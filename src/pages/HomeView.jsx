@@ -1,12 +1,23 @@
+import { useMemo } from 'react';
 import { useMusic } from '../context/MusicContext';
 import { useAuth } from '../context/AuthContext';
-import { Play } from 'lucide-react';
+import { Play, ListPlus, Plus } from 'lucide-react';
 import UserBadge from '../components/UserBadge';
+import { motion } from 'framer-motion';
 
 const HomeView = ({ setCurrentView }) => {
-    const { playlist, playSong } = useMusic();
+    const { playlist, playSong, addToQueue, history, playSearchedSong, openPlaylistModal } = useMusic();
     const { user } = useAuth();
     
+    // Map history IDs to song objects
+    const recentSongs = useMemo(() => {
+        return history
+            .map(h => playlist.find(s => s.id === h.song_id))
+            .filter(Boolean)
+            .filter((song, index, self) => self.findIndex(s => s.id === song.id) === index) // Unique
+            .slice(0, 8);
+    }, [history, playlist]);
+
     // Get greeting based on time
     const hour = new Date().getHours();
     let greeting = "Good morning";
@@ -15,65 +26,148 @@ const HomeView = ({ setCurrentView }) => {
     if (hour >= 21 || hour < 5) greeting = "Good night";
 
     return (
-        <div className="space-y-6 md:space-y-8 pb-24">
-            <div className="flex items-center justify-between mb-6 md:mb-8">
-                <h1 className="text-3xl md:text-4xl font-bold py-2 text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60 drop-shadow-sm leading-tight">
-                    {greeting}
-                    {user?.name && <span className="font-['Space_Grotesk'] font-medium text-white ml-2 tracking-tight">, {user.name.split(' ')[0]}</span>}
-                </h1>
+        <div className="min-h-full overflow-y-auto no-scrollbar scroll-smooth px-3 md:px-8 pt-4 md:pt-6 pb-24">
+            {/* Top Bar / Greeting */}
+            <div className="flex items-center justify-between mb-6 md:mb-10">
+                <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex flex-col"
+                >
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tighter">
+                        {greeting}
+                        {user?.user_metadata?.name && <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">, {user.user_metadata.name.split(' ')[0]}</span>}
+                    </h1>
+                    <p className="text-zinc-500 font-medium mt-1 text-sm md:text-base">Ready to dive into the rhythm?</p>
+                </motion.div>
                 <div className="md:hidden">
                     <UserBadge setCurrentView={setCurrentView} collapsed={true} />
                 </div>
             </div>
 
-            {/* Recent Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
-                {playlist.slice(0, 6).map((song, index) => (
-                    <div 
-                        key={song.id}
-                        onClick={() => playSong(index)} 
-                        className="flex items-center gap-2 md:gap-3 bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 backdrop-blur-sm transition-all rounded-lg md:rounded-xl overflow-hidden cursor-pointer group pr-2 md:pr-4 shadow-lg hover:shadow-2xl hover:scale-[1.02]"
-                    >
-                        <img src={song.image} alt={song.name} className="w-14 h-14 md:w-20 md:h-20 object-cover shadow-2xl" />
-                        <span className="font-bold text-[11px] md:text-sm truncate text-white/90 group-hover:text-white">{song.name}</span>
-                        
-                        <div className="ml-auto hidden md:flex opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity bg-cyan-400 rounded-full p-2.5 shadow-xl shadow-black/20 scale-100 md:scale-90 md:group-hover:scale-100 hover:scale-110">
-                             <Play size={20} fill="black" stroke="black" className="ml-0.5" />
-                        </div>
+            {/* Hero Section: Billboard */}
+            <motion.div 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="relative h-48 md:h-64 lg:h-80 rounded-2xl md:rounded-[2.5rem] overflow-hidden mb-8 md:mb-12 group cursor-pointer"
+                onClick={() => playlist[0] && playSong(0)}
+            >
+                <img 
+                    src={playlist[0]?.image || "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=2070&auto=format&fit=crop"} 
+                    alt="Featured" 
+                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent" />
+                
+                <div className="absolute bottom-4 md:bottom-8 left-4 md:left-8 right-4 md:right-8 flex items-end justify-between">
+                    <div className="flex flex-col">
+                        <span className="bg-white/10 backdrop-blur-md border border-white/10 px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/80 w-fit mb-2 md:mb-3">
+                            Trending Now
+                        </span>
+                        <h2 className="text-xl md:text-3xl lg:text-5xl font-black text-white mb-1 md:mb-2 uppercase tracking-tight">
+                            {playlist[0]?.name || "Discover New Vibes"}
+                        </h2>
+                        <p className="text-sm md:text-lg text-white/60 font-medium hidden sm:block">
+                            {playlist[0]?.artist || "Explore the latest hits curated just for you"}
+                        </p>
                     </div>
-                ))}
-            </div>
+                    <button className="bg-white text-black p-3 md:p-5 rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center">
+                        <Play size={20} fill="currentColor" className="ml-0.5 md:w-7 md:h-7" />
+                    </button>
+                </div>
+            </motion.div>
 
-            {/* Section: 'Made for You' */}
+            {/* Quick Picks / Recently Played */}
+            {recentSongs.length > 0 && (
+                <div className="mb-8 md:mb-12">
+                    <div className="flex items-center justify-between mb-4 md:mb-6">
+                        <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight">Jump Back In</h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                        {recentSongs.slice(0, 6).map((song, i) => (
+                            <motion.div 
+                                key={`recent-${song.id}-${i}`}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 + (i * 0.05) }}
+                                whileHover={{ x: 8 }}
+                                onClick={() => playSearchedSong(song)}
+                                className="flex items-center gap-3 md:gap-4 p-2.5 md:p-3 pr-4 md:pr-6 bg-white/5 hover:bg-white/10 active:bg-white/15 border border-white/5 rounded-xl md:rounded-2xl group cursor-pointer transition-all"
+                            >
+                                <div className="relative w-14 h-14 md:w-16 md:h-16 rounded-lg md:rounded-xl overflow-hidden flex-shrink-0 shadow-lg">
+                                    <img src={song.image} alt={song.name} className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                        <Play size={16} fill="white" className="text-white ml-0.5 md:w-5 md:h-5" />
+                                    </div>
+                                </div>
+                                <div className="flex flex-col min-w-0 flex-1">
+                                    <h4 className="font-bold text-white truncate group-hover:text-cyan-400 transition-colors uppercase tracking-tight text-sm md:text-base">{song.name}</h4>
+                                    <p className="text-xs text-zinc-500 font-medium truncate">{song.artist}</p>
+                                </div>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); openPlaylistModal(song.id); }}
+                                    className="p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-white/10 active:bg-white/20 rounded-full text-zinc-400 hover:text-white transition-all"
+                                >
+                                    <Plus size={16} className="md:w-[18px] md:h-[18px]" />
+                                </button>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+
+            {/* Section: Recommended */}
             <div>
-                 <div className="flex justify-between items-end mb-6">
-                    <h2 className="text-2xl font-bold hover:underline cursor-pointer text-white/90 decoration-cyan-400">Made for You</h2>
-                    <span 
+                 <div className="flex justify-between items-end mb-4 md:mb-8">
+                    <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight">Made For You</h2>
+                    <button 
                         onClick={() => setCurrentView && setCurrentView('library')}
-                        className="text-xs font-bold text-zinc-400 hover:text-white cursor-pointer tracking-wider uppercase transition-colors"
+                        className="text-[10px] font-black text-zinc-500 hover:text-white transition-colors uppercase tracking-[0.2em]"
                     >
-                        Show all
-                    </span>
+                        View All
+                    </button>
                  </div>
                  
-                 <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
-                    {playlist.slice(0, 6).map((song, i) => (
-                         <div 
-                            key={song.id} 
+                 <div className="flex gap-4 md:gap-6 overflow-x-auto pb-6 md:pb-8 no-scrollbar -mx-3 px-3 md:mx-0 md:px-0">
+                    {playlist.slice(0, 8).map((song, i) => (
+                         <motion.div 
+                            key={song.id}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.3 + (i * 0.1) }}
+                            whileHover={{ y: -10 }}
                             onClick={() => playSong(i)}
-                            className="flex-shrink-0 w-40 md:w-auto bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 p-4 md:p-5 rounded-2xl transition-all cursor-pointer group hover:scale-[1.03] backdrop-blur-md shadow-lg"
+                            className="flex-shrink-0 w-40 md:w-48 bg-zinc-900/40 backdrop-blur-md border border-white/5 p-3 md:p-4 rounded-2xl md:rounded-[2rem] group cursor-pointer transition-all hover:bg-zinc-800/60 active:bg-zinc-800/80 hover:border-white/10 shadow-xl"
                          >
-                            <div className="relative mb-3 md:mb-4">
-                                <img src={song.image} alt={song.name} className="w-full aspect-square object-cover rounded-xl shadow-2xl group-hover:shadow-2xl transition-all duration-500" />
-                                <div className="absolute bottom-2 right-2 translate-y-0 opacity-100 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 transition-all duration-300">
-                                    <div className="bg-cyan-400 rounded-full p-2.5 md:p-3.5 shadow-xl hover:scale-105 hover:bg-cyan-300 shadow-black/30">
-                                        <Play size={20} fill="black" stroke="black" className="ml-0.5" />
+                            <div className="relative mb-3 md:mb-5 shadow-2xl rounded-xl md:rounded-2xl overflow-hidden aspect-square">
+                                <img src={song.image} alt={song.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                <div className="absolute inset-0 bg-black/40 md:bg-black/60 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300">
+                                    <div className="bg-cyan-400 text-black p-3 md:p-4 rounded-full scale-100 md:scale-50 md:group-hover:scale-100 transition-transform duration-300 shadow-2xl shadow-cyan-400/20">
+                                        <Play size={18} fill="currentColor" className="ml-0.5 md:w-6 md:h-6" />
                                     </div>
                                 </div>
                             </div>
-                            <h3 className="font-bold truncate mb-1 text-sm md:text-base text-white group-hover:text-cyan-400 transition-colors">{song.name}</h3>
-                            <p className="text-xs md:text-sm text-zinc-400 truncate line-clamp-1 md:line-clamp-2">{song.artist}</p>
-                         </div>
+                            <h3 className="font-bold text-white mb-1 truncate uppercase tracking-tight group-hover:text-cyan-400 transition-colors text-sm md:text-base">{song.name}</h3>
+                            <p className="text-xs text-zinc-500 font-medium truncate">{song.artist}</p>
+                            
+                            <div className="mt-3 md:mt-4 flex items-center justify-between opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); addToQueue(song); }}
+                                    className="p-1.5 md:p-2 hover:bg-white/5 active:bg-white/10 rounded-full text-zinc-400 hover:text-white transition-colors"
+                                >
+                                    <ListPlus size={14} className="md:w-4 md:h-4" />
+                                </button>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); openPlaylistModal(song.id); }}
+                                    className="p-1.5 md:p-2 hover:bg-white/5 active:bg-white/10 rounded-full text-zinc-400 hover:text-white transition-colors"
+                                >
+                                    <Plus size={14} className="md:w-4 md:h-4" />
+                                </button>
+                            </div>
+                         </motion.div>
                     ))}
                  </div>
             </div>

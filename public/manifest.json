@@ -1,0 +1,21 @@
+{
+    "name": "Reverb Music Player",
+    "short_name": "Reverb",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#09090b",
+    "theme_color": "#22d3ee",
+    "description": "A premium web music player.",
+    "icons": [
+        {
+            "src": "/img/disc.webp",
+            "sizes": "512x512",
+            "type": "image/webp"
+        },
+        {
+            "src": "/vite.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}

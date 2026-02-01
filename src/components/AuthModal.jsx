@@ -17,18 +17,24 @@ const AuthModal = ({ isOpen, onClose }) => {
 
         let result;
         if (isLogin) {
-            result = login(data.email, data.password);
+            result = await login(data.email, data.password);
         } else {
-            result = signup(data);
+            result = await signup(data);
         }
 
         setIsLoading(false);
 
-        if (result.success) {
+        if (result && result.success) {
             onClose();
             reset();
         } else {
-            setError('root', { message: result.message });
+            let message = result?.message || 'An error occurred';
+            if (message.includes('User already registered') || message.includes('Email already in use')) {
+                message = 'This email is already registered. Try logging in instead.';
+            } else if (message.includes('Email rate limit exceeded') || message.includes('too many requests')) {
+                message = 'Too many attempts. Please wait a few minutes and try again.';
+            }
+            setError('root', { message });
         }
     };
 

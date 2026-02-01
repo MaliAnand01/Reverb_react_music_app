@@ -1,16 +1,26 @@
 import React, { useState, lazy, Suspense } from 'react';
 import { AuthProvider } from './context/AuthContext';
-import { MusicProvider } from './context/MusicContext';
+import { MusicProvider, useMusic } from './context/MusicContext';
 import MainLayout from './components/MainLayout';
+import KeyboardShortcuts from './components/KeyboardShortcuts';
+import EqualizerModal from './components/EqualizerModal';
+
+// Wrapper to consume context
+const EqualizerModalManager = () => {
+    const { isEqualizerOpen, closeEqualizer } = useMusic();
+    return <EqualizerModal isOpen={isEqualizerOpen} onClose={closeEqualizer} />;
+};
 
 const HomeView = lazy(() => import('./pages/HomeView'));
 const SearchView = lazy(() => import('./pages/SearchView'));
 const ProfileView = lazy(() => import('./pages/ProfileView'));
 const LibraryView = lazy(() => import('./pages/LibraryView'));
 const LikedSongsView = lazy(() => import('./pages/LikedSongsView'));
+const PlaylistDetailView = lazy(() => import('./pages/PlaylistDetailView'));
 
 function App() {
   const [currentView, setCurrentView] = useState('home');
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
 
   return (
     <AuthProvider>
@@ -20,10 +30,13 @@ function App() {
                     {currentView === 'home' && <HomeView setCurrentView={setCurrentView} />}
                     {currentView === 'search' && <SearchView />}
                     {currentView === 'profile' && <ProfileView />}
-                    {currentView === 'library' && <LibraryView />}
+                    {currentView === 'library' && <LibraryView setCurrentView={setCurrentView} setSelectedPlaylist={setSelectedPlaylist} />}
                     {currentView === 'liked' && <LikedSongsView />}
+                    {currentView === 'playlistDetail' && <PlaylistDetailView playlistId={selectedPlaylist} onBack={() => setCurrentView('library')} />}
                 </Suspense>
             </MainLayout>
+            <KeyboardShortcuts />
+            <EqualizerModalManager />
         </MusicProvider>
     </AuthProvider>
   );
